@@ -2,7 +2,7 @@
 let jobs = [];
 
 // Jobs data source (Supabase Storage JSON).
-const JOBS_DATA_URL = 'https://tokzbiepijjdvbdtacjz.supabase.co/storage/v1/object/public/jobs/jobs.json';
+const JOBS_DATA_URL = 'https://tokzbiepijjdvbdtacjz.supabase.co/storage/v1/object/public/jobs-info/jobs.json';
 
 // Determine the base URL for API requests. Use the local Flask server when
 // opened via file://, and the same origin when running on localhost.
