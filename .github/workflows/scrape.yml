@@ -32,6 +32,13 @@ jobs:
           SCRAPE_MAX_PASSES: "10"
         run: python scripts/scrape_jobs.py
 
+      - name: Build job details snapshot
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          JOBS_LIST_URL: "https://tokzbiepijjdvbdtacjz.supabase.co/storage/v1/object/public/jobs-info/jobs.json"
+          DETAILS_LIMIT: "1200"
+        run: python scripts/build_job_details.py
+
       - name: Upload to Supabase Storage
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -42,3 +49,8 @@ jobs:
             -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
             -H "Content-Type: application/json" \
             --data-binary @jobs.json
+          curl -X PUT "$SUPABASE_URL/storage/v1/object/jobs-info/jobsDetails.json" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" \
+            --data-binary @jobsDetails.json
