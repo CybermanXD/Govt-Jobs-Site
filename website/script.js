@@ -3,6 +3,7 @@ let jobs = [];
 
 // Jobs data source (Supabase Storage JSON).
 const JOBS_DATA_URL = 'https://tokzbiepijjdvbdtacjz.supabase.co/storage/v1/object/public/jobs-info/jobs.json';
+const JOB_DETAILS_URL = 'https://tokzbiepijjdvbdtacjz.supabase.co/storage/v1/object/public/jobs-info/jobsDetails.json';
 
 // Determine the base URL for API requests. Use the local Flask server when
 // opened via file://, and the same origin when running on localhost.
@@ -175,11 +176,25 @@ const AUTO_LOAD_MORE_INTERVAL_MS = 15 * 1000;
 
 let autoLoadMoreInFlight = false;
 
+let detailsByUrl = {};
+
 async function fetchJobsSnapshot() {
   const response = await fetch(JOBS_DATA_URL, { cache: 'no-store' });
   if (!response.ok) return [];
   const payload = await response.json();
   return Array.isArray(payload.jobs) ? payload.jobs : [];
+}
+
+async function fetchJobDetailsSnapshot() {
+  const response = await fetch(JOB_DETAILS_URL, { cache: 'no-store' });
+  if (!response.ok) return {};
+  const payload = await response.json();
+  if (payload && typeof payload === 'object') {
+    if (payload.details && typeof payload.details === 'object') {
+      return payload.details;
+    }
+  }
+  return {};
 }
 
 /**
@@ -301,6 +316,10 @@ async function loadJobs() {
           toggleLoadMore();
           cacheJobs();
         }
+        const details = await fetchJobDetailsSnapshot();
+        if (details && typeof details === 'object') {
+          detailsByUrl = details;
+        }
       } catch (err) {
         console.error('Failed to fetch jobs in background', err);
       }
@@ -322,6 +341,10 @@ async function loadJobs() {
         populateFilters();
         applyFiltersFromState();
         toggleLoadMore();
+        const details = await fetchJobDetailsSnapshot();
+        if (details && typeof details === 'object') {
+          detailsByUrl = details;
+        }
         showLoadingOverlay(false);
         setLoadingMessage(false);
         cacheJobs();
@@ -803,20 +826,101 @@ async function openModal(jobId) {
   if (LOCAL_API_BASE && !detailApiBases.includes(LOCAL_API_BASE)) {
     detailApiBases.push(LOCAL_API_BASE);
   }
-  const canFetchDetails = detailApiBases.length > 0 && job.url && job.url !== '#';
+  const storedDetails = job.url && detailsByUrl ? detailsByUrl[job.url] : null;
+  if (storedDetails) {
+    const data = storedDetails;
+    if (data.postName) setText('modal-postname', data.postName);
+    if (data.noOfPosts) setText('modal-postcount', data.noOfPosts);
+    if (data.salary) setText('modal-salary', data.salary);
+    if (data.ageLimit) setText('modal-agelimit', Array.isArray(data.ageLimit) ? data.ageLimit.join(', ') : data.ageLimit);
+    if (data.companyName) setText('modal-company', data.companyName);
+    if (data.advtNo) setText('modal-advt', data.advtNo);
+    if (data.qualification) setText('modal-qualification', data.qualification);
+    if (Array.isArray(data.importantDatesTable) && data.importantDatesTable.length) {
+      appendDatesTable(importantDatesDiv, data.importantDatesTable);
+    }
+    const datesList = [];
+    if (data.startDate) {
+      datesList.push(`Start Date to Apply: ${formatDate(data.startDate)}`);
+    }
+    if (data.lastDate) {
+      datesList.push(`Last Date to Apply: ${formatDate(data.lastDate)}`);
+    }
+    if (Array.isArray(data.importantDates) && data.importantDates.length) {
+      datesList.push(...data.importantDates);
+    }
+    appendListSection(importantDatesDiv, 'Important Dates', datesList);
+    const linksPayload = [];
+    if (Array.isArray(data.officialWebsites)) {
+      const sites = data.officialWebsites.slice(0, 2).filter(Boolean);
+      sites.forEach((site) => {
+        const domain = site.replace(/^https?:\/\//, '').split('/')[0];
+        linksPayload.push({
+          label: 'Official Website:',
+          text: domain,
+          url: site
+        });
+      });
+    }
+    if (Array.isArray(data.importantLinks) && data.importantLinks.length) {
+      const notifications = data.importantLinks.filter(link => link.type === 'officialNotification');
+      notifications.forEach((notif) => {
+        linksPayload.push({
+          label: notif.label,
+          text: notif.display,
+          url: notif.url
+        });
+      });
+    }
+    if (job.url && job.url !== '#') {
+      linksPayload.push({
+        label: 'View Job Posting Source:',
+        text: 'Open',
+        url: job.url
+      });
+    }
+    if (!linksPayload.length && data.officialNotificationStatus) {
+      linksPayload.push({
+        label: '',
+        text: data.officialNotificationStatus,
+        url: ''
+      });
+    }
+    if (linksPayload.length) {
+      const sec = document.createElement('div');
+      sec.innerHTML = '<h4>Important Links</h4>';
+      sec.appendChild(buildLinksList(linksPayload));
+      linksDiv.appendChild(sec);
+    }
+    appendListSection(detailsDiv, 'Salary/Stipend', data.salaryDetails);
+    appendListSection(detailsDiv, 'Eligibility Criteria', data.eligibility);
+    appendListSection(detailsDiv, 'Essential Requirements', data.desirableSkills);
+    appendListSection(detailsDiv, 'Experience', data.experience);
+    appendListSection(selectionDiv, 'Selection Process', data.selectionProcess);
+    appendListSection(instructionsDiv, 'General Instructions', data.generalInstructions);
+    appendListSection(applyDiv, 'How to Apply', data.howToApply, true);
+  }
+
+  const canFetchDetails = detailApiBases.length > 0 && job.url && job.url !== '#' && !storedDetails;
   if (canFetchDetails) {
     try {
       const params = new URLSearchParams({ url: job.url });
       let data = null;
+      let lastStatus = null;
+      let lastError = null;
+      const attemptedBases = [];
       for (const base of detailApiBases) {
         try {
+          attemptedBases.push(base);
           const response = await fetch(`${base}/api/job_details?${params.toString()}`);
+          lastStatus = response.status;
           if (!response.ok) {
             continue;
           }
           data = await response.json();
           break;
         } catch (err) {
+          lastError = err;
           continue;
         }
       }
@@ -900,9 +1004,24 @@ async function openModal(jobId) {
           sec.innerHTML = '<h4>Summary</h4><p>' + snippet + '</p>';
           detailsDiv.appendChild(sec);
         }
+        if (!detailsDiv.childElementCount && !importantDatesDiv.childElementCount && !selectionDiv.childElementCount && !instructionsDiv.childElementCount && !applyDiv.childElementCount && !linksDiv.childElementCount) {
+          const sec = document.createElement('div');
+          sec.innerHTML = '<h4>Details Fetch</h4><p>API returned data, but no structured sections were parsed.</p>';
+          detailsDiv.appendChild(sec);
+        }
+      } else {
+        const sec = document.createElement('div');
+        const statusText = lastStatus ? `Last status: ${lastStatus}.` : 'No HTTP response.';
+        const errorText = lastError ? ` Error: ${lastError}` : '';
+        const baseText = attemptedBases.length ? ` Attempted: ${attemptedBases.join(', ')}.` : '';
+        sec.innerHTML = `<h4>Details Fetch Failed</h4><p>${statusText}${baseText}${errorText}</p>`;
+        detailsDiv.appendChild(sec);
       }
     } catch (err) {
       console.error('Error fetching job details:', err);
+      const sec = document.createElement('div');
+      sec.innerHTML = `<h4>Details Fetch Failed</h4><p>${err}</p>`;
+      detailsDiv.appendChild(sec);
     }
   }
   // Show modal
