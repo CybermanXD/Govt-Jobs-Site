@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -108,13 +110,39 @@ def run_scrape() -> list[dict]:
 
 
 def main() -> None:
-    jobs = run_scrape()
+    target_count = int(os.getenv("TARGET_JOB_COUNT", "5000"))
+    max_runtime_sec = int(os.getenv("MAX_RUNTIME_SEC", "900"))
+    sleep_between_sec = int(os.getenv("SCRAPE_RETRY_SLEEP_SEC", "20"))
+    max_passes = int(os.getenv("SCRAPE_MAX_PASSES", "10"))
+
+    start_time = time.monotonic()
+    all_jobs: list[dict] = []
+    no_growth_rounds = 0
+
+    for attempt in range(1, max_passes + 1):
+        if time.monotonic() - start_time > max_runtime_sec:
+            break
+        new_jobs = run_scrape()
+        merged = dedupe_and_sort_jobs(all_jobs + new_jobs)[:MAX_JOBS_TO_CACHE]
+        if len(merged) == len(all_jobs):
+            no_growth_rounds += 1
+        else:
+            no_growth_rounds = 0
+        all_jobs = merged
+        if len(all_jobs) >= target_count:
+            break
+        if no_growth_rounds >= 2:
+            break
+        if time.monotonic() - start_time + sleep_between_sec > max_runtime_sec:
+            break
+        time.sleep(sleep_between_sec)
+
     ist_tz = timezone(timedelta(hours=5, minutes=30))
     ist_timestamp = datetime.now(ist_tz).strftime("%Y-%m-%d %I:%M%p IST").lower()
     payload = {
         "updated_at": ist_timestamp,
-        "count": len(jobs),
-        "jobs": jobs,
+        "count": len(all_jobs),
+        "jobs": all_jobs,
     }
     out_path = Path("jobs.json")
     out_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
