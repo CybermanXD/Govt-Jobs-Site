@@ -343,8 +343,11 @@ async function loadJobs() {
 
 // Utility to format dates nicely
 function formatDate(dateStr) {
+  if (!dateStr) return 'N/A';
+  const parsed = new Date(dateStr);
+  if (Number.isNaN(parsed.getTime())) return dateStr;
   const options = { year: 'numeric', month: 'short', day: 'numeric' };
-  return new Date(dateStr).toLocaleDateString('en-IN', options);
+  return parsed.toLocaleDateString('en-IN', options);
 }
 
 // Populate dynamic filter options (board and qualification) based on loaded jobs
@@ -685,7 +688,7 @@ async function openModal(jobId) {
   // Populate basic fields
   setText('modal-title', job.title);
   setText('modal-board', job.board);
-  setText('modal-qualification', job.qualification);
+  setText('modal-qualification', job.qualification || 'N/A');
   const sourceSpan = document.getElementById('modal-source');
   sourceSpan.innerHTML = '';
   if (job.url && job.url !== '#') {
@@ -701,10 +704,11 @@ async function openModal(jobId) {
   setText('modal-company', job.companyName || 'N/A');
   setText('modal-advt', job.advtNo || 'N/A');
   // Reset summary fields to defaults (may be overwritten later)
-  setText('modal-postname', job.title);
-  setText('modal-postcount', job.postCount || 'N/A');
+  setText('modal-postname', job.postName || job.title);
+  setText('modal-postcount', job.noOfPosts || job.postCount || 'N/A');
   setText('modal-salary', job.salary || 'N/A');
-  setText('modal-agelimit', job.ageLimit || 'N/A');
+  const ageFallback = Array.isArray(job.ageLimit) ? job.ageLimit.join(', ') : job.ageLimit;
+  setText('modal-agelimit', ageFallback || 'N/A');
   if (Array.isArray(job.officialWebsites) && job.officialWebsites.length) {
     const websiteSpan = document.getElementById('modal-website');
     if (websiteSpan) {

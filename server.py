@@ -891,8 +891,22 @@ def fetch_job_details(job_url: str) -> Dict[str, Any]:
     def find_value(prefixes: List[str]) -> str:
         for line in lines:
             for p in prefixes:
-                if line.lower().startswith(p.lower() + ":"):
+                lower_line = line.lower()
+                lower_prefix = p.lower()
+                if lower_line.startswith(lower_prefix + ":"):
                     return line.split(":", 1)[1].strip()
+                if lower_line.startswith(lower_prefix + " -"):
+                    return line.split("-", 1)[1].strip()
+                if lower_line.startswith(lower_prefix + " –"):
+                    return line.split("–", 1)[1].strip()
+        return ""
+
+    def find_value_anywhere(prefixes: List[str]) -> str:
+        for line in lines:
+            for p in prefixes:
+                match = re.search(rf"\b{re.escape(p)}\b\s*[:\-–]\s*(.+)$", line, flags=re.IGNORECASE)
+                if match:
+                    return match.group(1).strip()
         return ""
 
     def normalize_key(text_val: str) -> str:
@@ -907,7 +921,22 @@ def fetch_job_details(job_url: str) -> Dict[str, Any]:
                 return dt.date().isoformat()
             except Exception:
                 return raw_val
+        match = re.search(r"(\d{1,2})\s*[- ]\s*([A-Za-z]{3,})\s*[- ]\s*(\d{4})", raw_val)
+        if match:
+            dd, mon_text, yyyy = match.groups()
+            try:
+                dt = datetime.strptime(f"{dd}-{mon_text[:3]}", "%d-%b")
+                return datetime(int(yyyy), dt.month, dt.day).date().isoformat()
+            except Exception:
+                return raw_val
         return raw_val
+
+    def normalize_list_field(value: str) -> List[str]:
+        if not value:
+            return []
+        parts = re.split(r"\s*[;|,/]+\s*", value)
+        cleaned = [p.strip() for p in parts if p.strip()]
+        return cleaned if cleaned else [value.strip()]
 
     def parse_table_kv() -> Dict[str, str]:
         table_kv: Dict[str, str] = {}
@@ -944,6 +973,7 @@ def fetch_job_details(job_url: str) -> Dict[str, Any]:
     key_map = {
         "company name": "companyName",
         "name of company": "companyName",
+        "organization name": "companyName",
         "organization": "companyName",
         "organisation": "companyName",
         "post name": "postName",
@@ -952,11 +982,15 @@ def fetch_job_details(job_url: str) -> Dict[str, Any]:
         "no of posts": "noOfPosts",
         "no. of posts": "noOfPosts",
         "number of posts": "noOfPosts",
+        "no. of vacancies": "noOfPosts",
+        "no of vacancies": "noOfPosts",
         "advt no": "advtNo",
         "advt. no": "advtNo",
         "advertisement no": "advtNo",
+        "advertisement no.": "advtNo",
         "salary": "salary",
         "pay scale": "salary",
+        "pay": "salary",
         "qualification": "qualification",
         "age limit": "ageLimit",
         "start date for apply": "startDate",
@@ -970,7 +1004,7 @@ def fetch_job_details(job_url: str) -> Dict[str, Any]:
         if not mapped or mapped in details:
             continue
         if mapped == "ageLimit":
-            details[mapped] = [val]
+            details[mapped] = normalize_list_field(val)
         elif mapped == "lastDate":
             details[mapped] = coerce_date_value(val)
         else:
@@ -981,29 +1015,29 @@ def fetch_job_details(job_url: str) -> Dict[str, Any]:
         details["importantDatesTable"] = important_dates_table
 
     # Post Name / Title
-    post_name = find_value(["post name", "post names", "post", "name of post"])
+    post_name = find_value(["post name", "post names", "post", "name of post"]) or find_value_anywhere(["Post Name", "Name of Post"])
     if post_name:
         details["postName"] = post_name
     # Number of Posts
-    no_posts = find_value(["no of posts", "no. of posts", "number of posts", "no of vacancy", "vacancies"])
+    no_posts = find_value(["no of posts", "no. of posts", "number of posts", "no of vacancy", "vacancies"]) or find_value_anywhere(["No. of Posts", "No of Posts", "Vacancies", "No. of Vacancies"])
     if no_posts:
         details["noOfPosts"] = no_posts
     # Salary / Pay
-    salary = find_value(["salary", "pay scale", "stipend"])
+    salary = find_value(["salary", "pay scale", "stipend"]) or find_value_anywhere(["Salary", "Pay Scale", "Pay", "Stipend"])
     if salary:
         details["salary"] = salary
         details["salaryDetails"] = [salary]
     # Qualification
-    qualification = find_value(["qualification", "educational qualification", "essential qualification"])
+    qualification = find_value(["qualification", "educational qualification", "essential qualification"]) or find_value_anywhere(["Qualification", "Qualifications", "Educational Qualification"])
     if qualification:
         details["qualification"] = qualification
     # Age limit (single line value)
-    age_limit_val = find_value(["age limit", "age", "age as on"])
+    age_limit_val = find_value(["age limit", "age", "age as on"]) or find_value_anywhere(["Age Limit", "Age as on"])
     if age_limit_val:
         # Could be a range; split by comma
-        details["ageLimit"] = [age_limit_val]
+        details["ageLimit"] = normalize_list_field(age_limit_val)
     # Last date (if present in details page; fallback is from listing)
-    last_date = find_value(["last date", "last date for online application", "last date to apply"])
+    last_date = find_value(["last date", "last date for online application", "last date to apply"]) or find_value_anywhere(["Last Date", "Last Date to Apply"])
     if last_date:
         details["lastDate"] = coerce_date_value(last_date)
     # Official Website
@@ -1027,6 +1061,13 @@ def fetch_job_details(job_url: str) -> Dict[str, Any]:
                 if text:
                     section_lines.append(text)
         return section_lines
+    def extract_section_lines_after_label(labels: List[str]) -> List[str]:
+        for line in lines:
+            for label in labels:
+                if line.lower().startswith(label.lower() + ":"):
+                    content = line.split(":", 1)[1].strip()
+                    return [content] if content else []
+        return []
     def extract_important_links_strict() -> List[Dict[str, str]]:
         def normalize_url(url_val: str) -> str:
             if not url_val:
@@ -1146,13 +1187,28 @@ def fetch_job_details(job_url: str) -> Dict[str, Any]:
     if selection:
         details["selectionProcess"] = selection
 
+    if not details.get("selectionProcess"):
+        selection_inline = extract_section_lines_after_label(["selection process", "selection procedure"])
+        if selection_inline:
+            details["selectionProcess"] = selection_inline
+
     general = extract_section_by_heading(["General Information", "General Instructions", "Instructions"])
     if general:
         details["generalInstructions"] = general
 
+    if not details.get("generalInstructions"):
+        general_inline = extract_section_lines_after_label(["general instructions", "general information"])
+        if general_inline:
+            details["generalInstructions"] = general_inline
+
     how_to_apply = extract_section_by_heading(["How to Apply", "How to apply"])
     if how_to_apply:
         details["howToApply"] = how_to_apply
+
+    if not details.get("howToApply"):
+        how_inline = extract_section_lines_after_label(["how to apply", "application process"])
+        if how_inline:
+            details["howToApply"] = how_inline
 
     important_links = extract_important_links_strict()
     details["officialWebsites"] = [link.get("url") for link in important_links if link.get("type") == "officialWebsite" and link.get("url")]
@@ -1164,8 +1220,6 @@ def fetch_job_details(job_url: str) -> Dict[str, Any]:
     if "ageLimit" not in details:
         age_sec = extract_section_by_heading(["Age Limit"])
         if age_sec:
-            # Flatten lines into a single entry or list
-            # Remove bullet symbols if present
             cleaned = []
             for line in age_sec:
                 stripped = line.strip()
@@ -1173,6 +1227,26 @@ def fetch_job_details(job_url: str) -> Dict[str, Any]:
                     cleaned.append(stripped)
             if cleaned:
                 details["ageLimit"] = cleaned
+
+    if "advtNo" not in details:
+        advt_inline = extract_section_lines_after_label(["advt no", "advt. no", "advertisement no", "advertisement no."])
+        if advt_inline:
+            details["advtNo"] = advt_inline[0]
+
+    if "companyName" not in details:
+        company_inline = extract_section_lines_after_label(["company name", "name of company", "organisation", "organization", "organization name"])
+        if company_inline:
+            details["companyName"] = company_inline[0]
+
+    if "postName" not in details:
+        post_inline = extract_section_lines_after_label(["post name", "name of post"])
+        if post_inline:
+            details["postName"] = post_inline[0]
+
+    if "noOfPosts" not in details:
+        posts_inline = extract_section_lines_after_label(["no of posts", "no. of posts", "number of posts", "vacancies", "no. of vacancies"])
+        if posts_inline:
+            details["noOfPosts"] = posts_inline[0]
 
     return details
 
