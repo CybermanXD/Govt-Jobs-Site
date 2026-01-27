@@ -685,6 +685,45 @@ async function openModal(jobId) {
     const el = document.getElementById(id);
     if (el) el.textContent = value;
   };
+  const normalizeLines = (items) => {
+    if (!Array.isArray(items)) return [];
+    const seen = new Set();
+    const cleaned = [];
+    items.forEach((item) => {
+      const text = (item || '').toString().replace(/\s+/g, ' ').trim();
+      if (!text || seen.has(text)) return;
+      seen.add(text);
+      cleaned.push(text);
+    });
+    return cleaned;
+  };
+  const appendListSection = (container, title, items, ordered = false) => {
+    const cleaned = normalizeLines(items);
+    if (!cleaned.length) return;
+    const sec = document.createElement('div');
+    const tag = ordered ? 'ol' : 'ul';
+    sec.innerHTML = `<h4>${title}</h4><${tag}>${cleaned.map(item => `<li>${item}</li>`).join('')}</${tag}>`;
+    container.appendChild(sec);
+  };
+  const appendDatesTable = (container, rows) => {
+    if (!Array.isArray(rows) || !rows.length) return;
+    const sec = document.createElement('div');
+    const bodyRows = rows
+      .map(row => {
+        const eventText = (row.event || '').toString().trim();
+        const dateText = (row.date || '').toString().trim();
+        return eventText || dateText ? `<tr><td>${eventText}</td><td>${dateText}</td></tr>` : '';
+      })
+      .filter(Boolean)
+      .join('');
+    if (!bodyRows) return;
+    sec.innerHTML = '<h4>Important Dates</h4>' +
+      '<table class="modal-table">' +
+      '<thead><tr><th>Event</th><th>Date</th></tr></thead>' +
+      `<tbody>${bodyRows}</tbody>` +
+      '</table>';
+    container.appendChild(sec);
+  };
   // Populate basic fields
   setText('modal-title', job.title);
   setText('modal-board', job.board);
@@ -756,26 +795,32 @@ async function openModal(jobId) {
     });
     return list;
   };
-  const formatLinkLabel = (link) => {
-    const text = (link.text || '').trim();
-    const href = link.url || '';
-    if (text && text.toLowerCase() !== 'click here') return text;
-    const lowerHref = href.toLowerCase();
-    if (lowerHref.includes('apply') || lowerHref.includes('ojas')) return 'Apply Online';
-    if (lowerHref.endsWith('.pdf')) return 'Official Notification PDF';
-    if (lowerHref.includes('notification')) return 'Official Notification PDF';
-    return 'Official Link';
-  };
   // If served over HTTP and job URL exists, fetch extra details from API
   // Determine if we should attempt to fetch extra details.  When API_BASE is defined
   // (even in file:// mode) and a job URL exists, fetch details via the backend.
-  const canFetchDetails = API_ENABLED && job.url && job.url !== '#';
+  const detailApiBases = [];
+  if (API_BASE) detailApiBases.push(API_BASE);
+  if (LOCAL_API_BASE && !detailApiBases.includes(LOCAL_API_BASE)) {
+    detailApiBases.push(LOCAL_API_BASE);
+  }
+  const canFetchDetails = detailApiBases.length > 0 && job.url && job.url !== '#';
   if (canFetchDetails) {
     try {
       const params = new URLSearchParams({ url: job.url });
-      const response = await fetch(`${API_BASE}/api/job_details?${params.toString()}`);
-      if (response.ok) {
-        const data = await response.json();
+      let data = null;
+      for (const base of detailApiBases) {
+        try {
+          const response = await fetch(`${base}/api/job_details?${params.toString()}`);
+          if (!response.ok) {
+            continue;
+          }
+          data = await response.json();
+          break;
+        } catch (err) {
+          continue;
+        }
+      }
+      if (data) {
         // Fill summary fields if provided
         if (data.postName) setText('modal-postname', data.postName);
         if (data.noOfPosts) setText('modal-postcount', data.noOfPosts);
@@ -785,6 +830,9 @@ async function openModal(jobId) {
         if (data.advtNo) setText('modal-advt', data.advtNo);
         if (data.qualification) setText('modal-qualification', data.qualification);
         // Display extracted details if present
+        if (Array.isArray(data.importantDatesTable) && data.importantDatesTable.length) {
+          appendDatesTable(importantDatesDiv, data.importantDatesTable);
+        }
         const datesList = [];
         if (data.startDate) {
           datesList.push(`Start Date to Apply: ${formatDate(data.startDate)}`);
@@ -792,19 +840,10 @@ async function openModal(jobId) {
         if (data.lastDate) {
           datesList.push(`Last Date to Apply: ${formatDate(data.lastDate)}`);
         }
-        if (Array.isArray(data.importantDatesTable) && data.importantDatesTable.length) {
-          data.importantDatesTable.forEach((row) => {
-            datesList.push(`${row.event}: ${row.date}`);
-          });
-        }
         if (Array.isArray(data.importantDates) && data.importantDates.length) {
-          data.importantDates.forEach((item) => datesList.push(item));
+          datesList.push(...data.importantDates);
         }
-        if (datesList.length) {
-          const sec = document.createElement('div');
-          sec.innerHTML = '<h4>Important Dates</h4>' + '<ul>' + datesList.map(item => `<li>${item}</li>`).join('') + '</ul>';
-          importantDatesDiv.appendChild(sec);
-        }
+        appendListSection(importantDatesDiv, 'Important Dates', datesList);
         const linksPayload = [];
         if (Array.isArray(data.officialWebsites)) {
           const sites = data.officialWebsites.slice(0, 2).filter(Boolean);
@@ -827,6 +866,13 @@ async function openModal(jobId) {
             });
           });
         }
+        if (job.url && job.url !== '#') {
+          linksPayload.push({
+            label: 'View Job Posting Source:',
+            text: 'Open',
+            url: job.url
+          });
+        }
         if (!linksPayload.length && data.officialNotificationStatus) {
           linksPayload.push({
             label: '',
@@ -840,41 +886,13 @@ async function openModal(jobId) {
           sec.appendChild(buildLinksList(linksPayload));
           linksDiv.appendChild(sec);
         }
-        if (data.salaryDetails) {
-          const sec = document.createElement('div');
-          sec.innerHTML = '<h4>Salary/Stipend</h4>' + '<ul>' + data.salaryDetails.map(item => `<li>${item}</li>`).join('') + '</ul>';
-          detailsDiv.appendChild(sec);
-        }
-        if (data.eligibility) {
-          const sec = document.createElement('div');
-          sec.innerHTML = '<h4>Eligibility Criteria</h4>' + '<ul>' + data.eligibility.map(item => `<li>${item}</li>`).join('') + '</ul>';
-          detailsDiv.appendChild(sec);
-        }
-        if (data.desirableSkills) {
-          const sec = document.createElement('div');
-          sec.innerHTML = '<h4>Essential Requirements</h4>' + '<ul>' + data.desirableSkills.map(item => `<li>${item}</li>`).join('') + '</ul>';
-          detailsDiv.appendChild(sec);
-        }
-        if (data.experience) {
-          const sec = document.createElement('div');
-          sec.innerHTML = '<h4>Experience</h4>' + '<ul>' + data.experience.map(item => `<li>${item}</li>`).join('') + '</ul>';
-          detailsDiv.appendChild(sec);
-        }
-        if (data.selectionProcess) {
-          const sec = document.createElement('div');
-          sec.innerHTML = '<h4>Selection Process</h4>' + '<ul>' + data.selectionProcess.map(item => `<li>${item}</li>`).join('') + '</ul>';
-          selectionDiv.appendChild(sec);
-        }
-        if (data.generalInstructions) {
-          const sec = document.createElement('div');
-          sec.innerHTML = '<h4>General Instructions</h4>' + '<ul>' + data.generalInstructions.map(item => `<li>${item}</li>`).join('') + '</ul>';
-          instructionsDiv.appendChild(sec);
-        }
-        if (data.howToApply) {
-          const sec = document.createElement('div');
-          sec.innerHTML = '<h4>How to Apply</h4>' + '<ol>' + data.howToApply.map(item => `<li>${item}</li>`).join('') + '</ol>';
-          applyDiv.appendChild(sec);
-        }
+        appendListSection(detailsDiv, 'Salary/Stipend', data.salaryDetails);
+        appendListSection(detailsDiv, 'Eligibility Criteria', data.eligibility);
+        appendListSection(detailsDiv, 'Essential Requirements', data.desirableSkills);
+        appendListSection(detailsDiv, 'Experience', data.experience);
+        appendListSection(selectionDiv, 'Selection Process', data.selectionProcess);
+        appendListSection(instructionsDiv, 'General Instructions', data.generalInstructions);
+        appendListSection(applyDiv, 'How to Apply', data.howToApply, true);
         // Fallback: show first few lines of page text if nothing else captured
         if (!detailsDiv.childElementCount && data.html) {
           const snippet = data.html.split('\n').filter(l => l.trim()).slice(0, 10).join('<br>');
