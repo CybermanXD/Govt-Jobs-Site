@@ -25,7 +25,11 @@ jobs:
       - name: Run scraper
         env:
           PYTHONPATH: ${{ github.workspace }}
-          SCRAPE_TIMEOUT_SEC: "30"
+          SCRAPE_TIMEOUT_SEC: "45"
+          TARGET_JOB_COUNT: "5000"
+          MAX_RUNTIME_SEC: "900"
+          SCRAPE_RETRY_SLEEP_SEC: "20"
+          SCRAPE_MAX_PASSES: "10"
         run: python scripts/scrape_jobs.py
 
       - name: Upload to Supabase Storage
