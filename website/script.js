@@ -709,25 +709,6 @@ async function openModal(jobId) {
   setText('modal-salary', job.salary || 'N/A');
   const ageFallback = Array.isArray(job.ageLimit) ? job.ageLimit.join(', ') : job.ageLimit;
   setText('modal-agelimit', ageFallback || 'N/A');
-  if (Array.isArray(job.officialWebsites) && job.officialWebsites.length) {
-    const websiteSpan = document.getElementById('modal-website');
-    if (websiteSpan) {
-      websiteSpan.innerHTML = '';
-      job.officialWebsites.slice(0, 2).forEach((site, idx) => {
-        const link = document.createElement('a');
-        link.href = site;
-        link.target = '_blank';
-        link.rel = 'noopener noreferrer';
-        link.textContent = site.replace(/^https?:\/\//, '').split('/')[0];
-        websiteSpan.appendChild(link);
-        if (idx < Math.min(job.officialWebsites.length, 2) - 1) {
-          websiteSpan.appendChild(document.createTextNode(', '));
-        }
-      });
-    }
-  } else {
-    setText('modal-website', job.officialWebsite || '');
-  }
   const linkWrapper = document.getElementById('modal-link-wrapper');
   linkWrapper.innerHTML = '';
   // Add official link if available
@@ -802,34 +783,6 @@ async function openModal(jobId) {
         if (data.ageLimit) setText('modal-agelimit', Array.isArray(data.ageLimit) ? data.ageLimit.join(', ') : data.ageLimit);
         if (data.companyName) setText('modal-company', data.companyName);
         if (data.advtNo) setText('modal-advt', data.advtNo);
-        if (Array.isArray(data.officialWebsites) && data.officialWebsites.length) {
-          const websiteSpan = document.getElementById('modal-website');
-          if (websiteSpan) {
-            websiteSpan.innerHTML = '';
-            data.officialWebsites.slice(0, 2).forEach((site, idx) => {
-              const a = document.createElement('a');
-              a.href = site;
-              a.textContent = site.replace(/^https?:\/\//, '').split('/')[0];
-              a.target = '_blank';
-              a.rel = 'noopener noreferrer';
-              websiteSpan.appendChild(a);
-              if (idx < Math.min(data.officialWebsites.length, 2) - 1) {
-                websiteSpan.appendChild(document.createTextNode(', '));
-              }
-            });
-          }
-        } else if (data.officialWebsite) {
-          const websiteSpan = document.getElementById('modal-website');
-          if (websiteSpan) {
-            websiteSpan.innerHTML = '';
-            const a = document.createElement('a');
-            a.href = data.officialWebsite;
-            a.textContent = data.officialWebsite;
-            a.target = '_blank';
-            a.rel = 'noopener noreferrer';
-            websiteSpan.appendChild(a);
-          }
-        }
         if (data.qualification) setText('modal-qualification', data.qualification);
         // Display extracted details if present
         const datesList = [];
