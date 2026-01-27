@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
@@ -109,8 +109,10 @@ def run_scrape() -> list[dict]:
 
 def main() -> None:
     jobs = run_scrape()
+    ist_tz = timezone(timedelta(hours=5, minutes=30))
+    ist_timestamp = datetime.now(ist_tz).strftime("%Y-%m-%d %I:%M%p IST").lower()
     payload = {
-        "updated_at": datetime.utcnow().isoformat(),
+        "updated_at": ist_timestamp,
         "count": len(jobs),
         "jobs": jobs,
     }
