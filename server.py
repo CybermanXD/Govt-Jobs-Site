@@ -68,9 +68,6 @@ app = Flask(__name__, static_folder=STATIC_PATH, static_url_path="")
 
 logging.basicConfig(level=logging.INFO)
 
-# Timeout for HTTP requests (seconds). Can be overridden via SCRAPE_TIMEOUT_SEC.
-SCRAPE_TIMEOUT_SEC = int(os.getenv("SCRAPE_TIMEOUT_SEC", "30"))
-
 # -----------------------------------------------------------------------------
 # CORS support
 #
@@ -110,10 +107,6 @@ scrape_lock = threading.Lock()
 # if you need more or less frequent updates.
 REFRESH_INTERVAL_SEC = 10 * 60
 
-# Snapshot interval for Blogger-friendly JSON export.
-SNAPSHOT_INTERVAL_SEC = 15 * 60
-SNAPSHOT_PATH = os.path.join(ROOT_DIR, "jobs_snapshot.json")
-
 # Maximum number of jobs to keep in the cache.  After scraping and
 # deduplicating, the cache will be truncated to this size, keeping the
 # most recent postings first.
@@ -151,19 +144,6 @@ def persist_jobs_cache(jobs: List[Dict[str, Any]]) -> None:
     except Exception as e:
         logging.error("Failed to persist jobs cache: %s", e)
 
-def write_snapshot(jobs: List[Dict[str, Any]]) -> None:
-    """Write a Blogger-friendly snapshot of jobs to disk."""
-    try:
-        payload = {
-            "updated_at": datetime.utcnow().isoformat(),
-            "count": len(jobs),
-            "jobs": jobs,
-        }
-        with open(SNAPSHOT_PATH, "w", encoding="utf-8") as f:
-            json.dump(payload, f, ensure_ascii=False)
-    except Exception as e:
-        logging.error("Failed to write snapshot: %s", e)
-
 def load_jobs_cache_from_disk() -> bool:
     """Load the persisted cache from disk into memory, if available."""
     global jobs_cache, jobs_loaded
@@ -196,7 +176,6 @@ def update_cache_snapshot(jobs: List[Dict[str, Any]], mark_loaded: bool) -> None
         jobs_cache = deduped
         jobs_loaded = mark_loaded
     persist_jobs_cache(deduped)
-    write_snapshot(deduped)
 
 def ensure_scrape_thread_started() -> None:
     """Start the periodic scraping thread once."""
@@ -205,7 +184,6 @@ def ensure_scrape_thread_started() -> None:
         return
     scrape_thread_started = True
     threading.Thread(target=periodic_scrape_loop, daemon=True).start()
-    threading.Thread(target=snapshot_loop, daemon=True).start()
 
 # Load persisted cache early for faster first response.
 load_jobs_cache_from_disk()
@@ -231,17 +209,6 @@ def periodic_scrape_loop() -> None:
             jobs_loading = False
         # Sleep for the configured interval before next refresh
         time.sleep(REFRESH_INTERVAL_SEC)
-
-def snapshot_loop() -> None:
-    """Periodically write a snapshot for Blogger consumption."""
-    while True:
-        try:
-            with scrape_lock:
-                snapshot_jobs = list(jobs_cache)
-            write_snapshot(snapshot_jobs)
-        except Exception as e:
-            logging.error("Snapshot loop error: %s", e)
-        time.sleep(SNAPSHOT_INTERVAL_SEC)
 
 
 def run_full_scrape() -> None:
@@ -391,7 +358,7 @@ def scrape_freejobalert_all_jobs() -> List[Dict[str, Any]]:
     jobs: List[Dict[str, Any]] = []
     url = "https://www.freejobalert.com/government-jobs/"
     try:
-        resp = requests.get(url, timeout=SCRAPE_TIMEOUT_SEC)
+        resp = requests.get(url, timeout=15)
     except Exception as e:
         logging.error("Failed to fetch FreeJobAlert page: %s", e)
         return jobs
@@ -442,7 +409,7 @@ def scrape_freejobalert_jk_jobs() -> List[Dict[str, Any]]:
     jobs: List[Dict[str, Any]] = []
     url = "https://www.freejobalert.com/jk-government-jobs/"
     try:
-        resp = requests.get(url, timeout=SCRAPE_TIMEOUT_SEC)
+        resp = requests.get(url, timeout=15)
     except Exception as e:
         logging.error("Failed to fetch JK government jobs page: %s", e)
         return jobs
@@ -497,7 +464,7 @@ def scrape_freejobalert_latest_notifications() -> List[Dict[str, Any]]:
     jobs: List[Dict[str, Any]] = []
     url = "https://www.freejobalert.com/latest-notifications/"
     try:
-        resp = requests.get(url, timeout=SCRAPE_TIMEOUT_SEC)
+        resp = requests.get(url, timeout=15)
     except Exception as e:
         logging.error("Failed to fetch FreeJobAlert latest notifications: %s", e)
         return jobs
@@ -581,7 +548,7 @@ def scrape_freejobalert_table_page(url: str, source_name: str, state: str | None
     """
     jobs: List[Dict[str, Any]] = []
     try:
-        resp = requests.get(url, timeout=SCRAPE_TIMEOUT_SEC)
+        resp = requests.get(url, timeout=15)
     except Exception as e:
         logging.error("Failed to fetch FreeJobAlert table page %s: %s", url, e)
         return jobs
@@ -656,7 +623,7 @@ def scrape_freejobalert_search_page(url: str, category: str | None = None, infer
     """
     jobs: List[Dict[str, Any]] = []
     try:
-        resp = requests.get(url, timeout=SCRAPE_TIMEOUT_SEC)
+        resp = requests.get(url, timeout=15)
     except Exception as e:
         logging.error("Failed to fetch FreeJobAlert search page %s: %s", url, e)
         return jobs
@@ -758,7 +725,7 @@ def scrape_freejobalert_state_jobs() -> List[Dict[str, Any]]:
     jobs: List[Dict[str, Any]] = []
     url = "https://www.freejobalert.com/state-government-jobs/"
     try:
-        resp = requests.get(url, timeout=SCRAPE_TIMEOUT_SEC)
+        resp = requests.get(url, timeout=15)
     except Exception as e:
         logging.error("Failed to fetch FreeJobAlert state jobs: %s", e)
         return jobs
@@ -821,7 +788,7 @@ def scrape_indgovtjobs_latest_all_india() -> List[Dict[str, Any]]:
     jobs: List[Dict[str, Any]] = []
     url = "https://www.indgovtjobs.in/2015/10/Government-Jobs.html"
     try:
-        resp = requests.get(url, timeout=SCRAPE_TIMEOUT_SEC)
+        resp = requests.get(url, timeout=15)
     except Exception as e:
         logging.error("Failed to fetch IndGovtJobs page: %s", e)
         return jobs
@@ -874,7 +841,7 @@ def fetch_job_details(job_url: str) -> Dict[str, Any]:
     if not job_url:
         return details
     try:
-        resp = requests.get(job_url, timeout=SCRAPE_TIMEOUT_SEC)
+        resp = requests.get(job_url, timeout=15)
     except Exception as e:
         logging.error("Failed to fetch job details from %s: %s", job_url, e)
         return details
@@ -1257,22 +1224,6 @@ def api_job_details():
         return abort(400, description="Missing 'url' query parameter")
     details = fetch_job_details(job_url)
     return jsonify(details)
-
-
-@app.route("/api/snapshot")
-def api_snapshot():
-    """Serve the latest snapshot for Blogger clients."""
-    if not os.path.exists(SNAPSHOT_PATH):
-        with scrape_lock:
-            snapshot_jobs = list(jobs_cache)
-        write_snapshot(snapshot_jobs)
-    try:
-        with open(SNAPSHOT_PATH, "r", encoding="utf-8") as f:
-            payload = json.load(f)
-        return jsonify(payload)
-    except Exception as e:
-        logging.error("Failed to read snapshot: %s", e)
-        return jsonify({"updated_at": None, "count": 0, "jobs": []})
 
 
 # Always register the root path handler so that the index.html file is served
