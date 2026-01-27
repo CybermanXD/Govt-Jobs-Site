@@ -1,0 +1,470 @@
+/* Basic Reset */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+}
+
+body {
+  background-color: #f8f9fb;
+  color: #333;
+}
+
+.container {
+  width: 90%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Header */
+.site-header {
+  background-color: #2d64a8; /* Blue similar to Naukri */
+  color: #fff;
+  padding: 15px 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.site-header .container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.nav-links a {
+  color: #fff;
+  margin-right: 15px;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.nav-links a:hover {
+  text-decoration: underline;
+}
+
+.auth-buttons button {
+  margin-left: 10px;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.btn-outline {
+  background-color: transparent;
+  border: 1px solid #fff;
+  color: #fff;
+}
+
+.btn-outline:hover {
+  background-color: #fff;
+  color: #2d64a8;
+}
+
+.btn-primary {
+  background-color: #fff;
+  border: none;
+  color: #2d64a8;
+}
+
+.btn-primary:hover {
+  background-color: #e5effa;
+}
+
+/* Hero Section */
+.hero-section {
+  background-color: #f0f5fb;
+  padding: 50px 0;
+  text-align: center;
+}
+
+.hero-section h1 {
+  font-size: 32px;
+  margin-bottom: 20px;
+  color: #2d64a8;
+}
+
+.search-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.search-bar input, .search-bar select, .search-bar button {
+  padding: 10px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.search-bar input {
+  flex: 1 1 200px;
+  max-width: 300px;
+}
+
+.search-bar select {
+  flex: 1 1 150px;
+  max-width: 180px;
+}
+
+.search-bar button {
+  background-color: #2d64a8;
+  color: #fff;
+  border: none;
+  flex: 1 1 100px;
+  max-width: 120px;
+  cursor: pointer;
+}
+
+.search-bar button:hover {
+  background-color: #244e85;
+}
+
+/* Results Section */
+.results-section {
+  padding: 40px 0;
+}
+
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.results-header h2 {
+  font-size: 24px;
+  color: #2d64a8;
+}
+
+.sort-control select {
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.jobs-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.job-card {
+  background-color: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 15px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Style for details link so it resembles a button */
+.btn-details {
+  display: inline-block;
+  padding: 6px 12px;
+  margin-top: 8px;
+  background-color: #2d64a8;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 4px;
+  font-size: 14px;
+}
+.btn-details:hover {
+  background-color: #1d4b82;
+}
+
+.job-card h3 {
+  font-size: 18px;
+  color: #2d64a8;
+  margin-bottom: 10px;
+}
+
+.job-card .job-meta {
+  font-size: 14px;
+  margin-bottom: 10px;
+  color: #555;
+}
+
+.job-card button {
+  padding: 8px 12px;
+  background-color: #2d64a8;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.job-card button:hover {
+  background-color: #244e85;
+}
+
+/* Modal */
+.modal {
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  /* Prevent scrolling on the overlay itself; only the modal content scrolls */
+  overflow: hidden;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 600px;
+  /* Limit the height of the modal to a portion of the viewport and allow
+     internal scrolling.  A margin is added on all sides to prevent
+     the content from touching the viewport edges and to provide
+     breathing room on tall screens. */
+  /* Limit height based on desired 80px top and bottom margins (80px * 2 = 160px) */
+  max-height: calc(100vh - 160px);
+  overflow-y: auto;
+  /* Allow long words/URLs to wrap within the modal so they don't overflow horizontally */
+  overflow-wrap: anywhere;
+  /* Provide 80px top and bottom margin and center horizontally */
+  margin: 80px auto;
+  position: relative;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Make modal responsive on small screens */
+@media (max-width: 600px) {
+  .modal-content {
+    width: 95%;
+    max-width: none;
+    /* Increase max-height slightly on mobile to utilize more vertical space */
+    /* For small screens, top/bottom margin should be 40px.  Total vertical margin is 80px */
+    max-height: calc(100vh - 80px);
+    margin: 40px 10px;
+  }
+}
+
+.modal-close {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* Improve typography within modal */
+.modal-content h3 {
+  margin-bottom: 15px;
+  font-size: 24px;
+  color: #2d64a8;
+}
+.modal-content p {
+  margin-bottom: 8px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.modal-details h4 {
+  margin-top: 18px;
+  margin-bottom: 6px;
+  color: #2d64a8;
+  font-size: 16px;
+}
+.modal-content p strong {
+  font-weight: 600;
+}
+.modal-content #modal-details h4 {
+  margin-top: 15px;
+  margin-bottom: 5px;
+  color: #2d64a8;
+  font-size: 16px;
+}
+
+/* Generic rule for any modal-details block */
+.modal-details ul,ol {
+ 
+  margin-bottom: 10px;
+  list-style-type: disc;
+  padding-left: 20px;
+}
+
+.modal-details ul li {
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.modal p{
+  font-family: Arial, sans-serif;
+  font-size: 16px !important; line-height: 1.5;
+   
+}
+
+.modal-details {
+  font-family: Arial, sans-serif;
+  font-size: 16px !important; line-height: 1.5;
+   
+}
+ 
+.modal-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+  font-size: 13px;
+}
+.modal-table th,
+.modal-table td {
+  border: 1px solid #e0e0e0;
+  padding: 6px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+.modal-table th {
+  background-color: #f5f7fb;
+  color: #2d64a8;
+  font-weight: 600;
+}
+
+/* Loading overlay styles */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 2000;
+}
+
+.loading-overlay .spinner {
+  border: 8px solid #f3f3f3;
+  border-top: 8px solid #2d64a8;
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  animation: spin 1s linear infinite;
+}
+
+.loading-overlay p {
+  margin-top: 15px;
+  color: #fff;
+  font-size: 18px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Footer */
+.site-footer {
+  background-color: #2d64a8;
+  color: #fff;
+  text-align: center;
+  padding: 20px 0;
+  margin-top: 40px;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  margin-top: 20px;
+}
+.pagination button {
+  padding: 6px 12px;
+  border: 1px solid #ccc;
+  background: #fff;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 14px;
+}
+.pagination-select {
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  background: #fff;
+  cursor: pointer;
+  min-width: 140px;
+  text-align: center;
+}
+.pagination button.active {
+  background-color: #2d64a8;
+  color: #fff;
+  border-color: #2d64a8;
+}
+.pagination button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* Breadcrumbs navigation */
+.breadcrumbs {
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+.breadcrumbs a {
+  color: #2d64a8;
+  text-decoration: none;
+}
+.breadcrumbs a:hover {
+  text-decoration: underline;
+}
+
+/* Load more button */
+.load-more-container {
+  text-align: center;
+  margin-top: 20px;
+}
+.btn-load-more {
+  padding: 8px 16px;
+  border: 1px solid #2d64a8;
+  background-color: #fff;
+  color: #2d64a8;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.btn-load-more:hover {
+  background-color: #2d64a8;
+  color: #fff;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .search-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .search-bar input,
+  .search-bar select,
+  .search-bar button {
+    max-width: 100%;
+    flex: 1 1 100%;
+  }
+  .results-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .jobs-list {
+    grid-template-columns: 1fr;
+  }
+}

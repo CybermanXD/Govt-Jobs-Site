@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Govt Jobs Portal</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Header -->
+  <header class="site-header">
+    <div class="container">
+      <div class="logo">GovtJobs</div>
+     
+    </div>
+  </header>
+
+  <!-- Hero / Search Section -->
+  <section class="hero-section">
+    <div class="container">
+      <h1>Find Your Dream Government Job</h1>
+      <div class="search-bar">
+        <input type="text" id="keyword" placeholder="Search by job title, keyword or board..." />
+        <select id="qualification">
+          <option value="">Qualification</option>
+          <option value="8th">8th Pass</option>
+          <option value="10th">10th Pass</option>
+          <option value="12th">12th Pass</option>
+          <option value="diploma">Diploma</option>
+          <option value="graduate">Graduate</option>
+          <option value="postgraduate">Post‑Graduate</option>
+        </select>
+        <select id="state">
+          <option value="">State</option>
+        </select>
+        <select id="board">
+          <option value="">Recruitment Board/State</option>
+          <option value="UPSC">UPSC</option>
+          <option value="SSC">SSC</option>
+          <option value="RRB">RRB</option>
+          <option value="JKSSB">JKSSB</option>
+          <option value="JKPSC">JKPSC</option>
+          <option value="Other">Other</option>
+        </select>
+        <!-- Deadline filter removed -->
+        <button id="search-btn" class="btn-primary">Search</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Results Section -->
+  <section class="results-section">
+    <div class="container">
+      <div class="results-header">
+        <div>
+          <h2 id="results-count">Jobs</h2>
+        </div>
+        <div class="sort-control">
+          Sort by:
+          <select id="sort-options">
+            <!-- User-friendly labels for sorting options -->
+            <option value="lastDateAsc">Nearest First</option>
+            <option value="lastDateDesc">Farthest First</option>
+          </select>
+        </div>
+      </div>
+      <div id="jobs-list" class="jobs-list">
+        <!-- Job cards inserted via JavaScript -->
+      </div>
+      <!-- Pagination controls -->
+      <div id="pagination" class="pagination"></div>
+      <!-- Load more container for dynamic pagination -->
+      <div id="load-more-container" class="load-more-container" style="display:none; text-align:center; margin-top:20px;">
+        <button id="load-more-btn" class="btn-load-more">Load More Jobs</button>
+      </div>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>&copy; 2026 GovtJobs Portal. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- Modal for Job Details -->
+  <div id="job-modal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <span id="modal-close" class="modal-close">&times;</span>
+      <h3 id="modal-title"></h3>
+      <!-- Summary fields -->
+      <p><strong>Recruiting Board:</strong> <span id="modal-board"></span></p>
+      <p><strong>Company Name:</strong> <span id="modal-company"></span></p>
+      <p><strong>Post Name:</strong> <span id="modal-postname"></span></p>
+      <p><strong>No of Posts:</strong> <span id="modal-postcount"></span></p>
+      <p><strong>Advt No:</strong> <span id="modal-advt"></span></p>
+      <p><strong>Salary:</strong> <span id="modal-salary"></span></p>
+      <p><strong>Qualification Required:</strong> <span id="modal-qualification"></span></p>
+      <p><strong>Age Limit:</strong> <span id="modal-agelimit"></span></p>
+       
+      <div id="modal-important-links" class="modal-details" style="margin-top:15px;"></div>
+      <div id="modal-link-wrapper" class="modal-details"  style="margin-top:20px;margin-bottom: 20px;"></div>
+      <!-- Container for dynamic job details (eligibility, salary details, etc.) -->
+      
+      <div id="modal-important-dates" class="modal-details" style="margin-top:15px;"></div>
+      <div id="modal-details" class="modal-details" style="margin-top:15px;"></div>
+      <div id="modal-selection-process" class="modal-details" style="margin-top:15px;"></div>
+      <div id="modal-general-instructions" class="modal-details" style="margin-top:15px;"></div>
+      <div id="modal-how-to-apply" class="modal-details" style="margin-top:15px;"></div>
+      
+      <p style="margin-top:15px;margin-bottom: 20px;"><strong>Source:</strong> <span id="modal-source"></span></p>
+    </div>
+  </div>
+
+  <!-- Include job data before main script to populate real jobs -->
+  <script src="data.js"></script>
+  <script src="script.js"></script>
+
+  <!-- Loading overlay used to indicate when jobs are being fetched -->
+  <div id="loading-overlay" class="loading-overlay" style="display:none;">
+    <div class="spinner"></div>
+    <p id="loading-text">Loading jobs…</p>
+  </div>
+</body>
+</html>
