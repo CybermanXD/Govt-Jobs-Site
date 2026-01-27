@@ -68,6 +68,9 @@ app = Flask(__name__, static_folder=STATIC_PATH, static_url_path="")
 
 logging.basicConfig(level=logging.INFO)
 
+# Timeout for HTTP requests (seconds). Can be overridden via SCRAPE_TIMEOUT_SEC.
+SCRAPE_TIMEOUT_SEC = int(os.getenv("SCRAPE_TIMEOUT_SEC", "30"))
+
 # -----------------------------------------------------------------------------
 # CORS support
 #
@@ -388,7 +391,7 @@ def scrape_freejobalert_all_jobs() -> List[Dict[str, Any]]:
     jobs: List[Dict[str, Any]] = []
     url = "https://www.freejobalert.com/government-jobs/"
     try:
-        resp = requests.get(url, timeout=15)
+        resp = requests.get(url, timeout=SCRAPE_TIMEOUT_SEC)
     except Exception as e:
         logging.error("Failed to fetch FreeJobAlert page: %s", e)
         return jobs
@@ -439,7 +442,7 @@ def scrape_freejobalert_jk_jobs() -> List[Dict[str, Any]]:
     jobs: List[Dict[str, Any]] = []
     url = "https://www.freejobalert.com/jk-government-jobs/"
     try:
-        resp = requests.get(url, timeout=15)
+        resp = requests.get(url, timeout=SCRAPE_TIMEOUT_SEC)
     except Exception as e:
         logging.error("Failed to fetch JK government jobs page: %s", e)
         return jobs
@@ -494,7 +497,7 @@ def scrape_freejobalert_latest_notifications() -> List[Dict[str, Any]]:
     jobs: List[Dict[str, Any]] = []
     url = "https://www.freejobalert.com/latest-notifications/"
     try:
-        resp = requests.get(url, timeout=15)
+        resp = requests.get(url, timeout=SCRAPE_TIMEOUT_SEC)
     except Exception as e:
         logging.error("Failed to fetch FreeJobAlert latest notifications: %s", e)
         return jobs
@@ -578,7 +581,7 @@ def scrape_freejobalert_table_page(url: str, source_name: str, state: str | None
     """
     jobs: List[Dict[str, Any]] = []
     try:
-        resp = requests.get(url, timeout=15)
+        resp = requests.get(url, timeout=SCRAPE_TIMEOUT_SEC)
     except Exception as e:
         logging.error("Failed to fetch FreeJobAlert table page %s: %s", url, e)
         return jobs
@@ -653,7 +656,7 @@ def scrape_freejobalert_search_page(url: str, category: str | None = None, infer
     """
     jobs: List[Dict[str, Any]] = []
     try:
-        resp = requests.get(url, timeout=15)
+        resp = requests.get(url, timeout=SCRAPE_TIMEOUT_SEC)
     except Exception as e:
         logging.error("Failed to fetch FreeJobAlert search page %s: %s", url, e)
         return jobs
@@ -755,7 +758,7 @@ def scrape_freejobalert_state_jobs() -> List[Dict[str, Any]]:
     jobs: List[Dict[str, Any]] = []
     url = "https://www.freejobalert.com/state-government-jobs/"
     try:
-        resp = requests.get(url, timeout=15)
+        resp = requests.get(url, timeout=SCRAPE_TIMEOUT_SEC)
     except Exception as e:
         logging.error("Failed to fetch FreeJobAlert state jobs: %s", e)
         return jobs
@@ -818,7 +821,7 @@ def scrape_indgovtjobs_latest_all_india() -> List[Dict[str, Any]]:
     jobs: List[Dict[str, Any]] = []
     url = "https://www.indgovtjobs.in/2015/10/Government-Jobs.html"
     try:
-        resp = requests.get(url, timeout=15)
+        resp = requests.get(url, timeout=SCRAPE_TIMEOUT_SEC)
     except Exception as e:
         logging.error("Failed to fetch IndGovtJobs page: %s", e)
         return jobs
@@ -871,7 +874,7 @@ def fetch_job_details(job_url: str) -> Dict[str, Any]:
     if not job_url:
         return details
     try:
-        resp = requests.get(job_url, timeout=15)
+        resp = requests.get(job_url, timeout=SCRAPE_TIMEOUT_SEC)
     except Exception as e:
         logging.error("Failed to fetch job details from %s: %s", job_url, e)
         return details
