@@ -5,14 +5,17 @@ let jobs = [];
 const JOBS_DATA_URL = 'https://tokzbiepijjdvbdtacjz.supabase.co/storage/v1/object/public/jobs-info/jobs.json';
 const JOB_DETAILS_URL = 'https://tokzbiepijjdvbdtacjz.supabase.co/storage/v1/object/public/jobs-info/jobsDetails.json';
 
-// Determine the base URL for API requests. Use the local Flask server when
-// opened via file://, and the same origin when running on localhost.
+// Determine the base URL for API requests.
+// Use the hosted API when served from a public origin; fall back to localhost
+// only for file:// or explicit localhost usage.
 const LOCAL_API_BASE = 'http://127.0.0.1:5000';
-const API_BASE = window.location.protocol === 'file:' ? LOCAL_API_BASE : '';
-const API_ENABLED =
+const REMOTE_API_BASE = 'https://govt-jobs-site.onrender.com';
+const isFileProtocol = window.location.protocol === 'file:';
+const isLocalhost =
   window.location.hostname === 'localhost' ||
-  window.location.hostname === '127.0.0.1' ||
-  window.location.protocol === 'file:';
+  window.location.hostname === '127.0.0.1';
+const API_BASE = isFileProtocol ? LOCAL_API_BASE : '';
+const API_ENABLED = isFileProtocol || isLocalhost || Boolean(REMOTE_API_BASE);
 
 // List of all Indian states and union territories.  This is used both to
 // populate the state filter and to infer a state for jobs that are not
@@ -823,8 +826,11 @@ async function openModal(jobId) {
   // (even in file:// mode) and a job URL exists, fetch details via the backend.
   const detailApiBases = [];
   if (API_BASE) detailApiBases.push(API_BASE);
-  if (LOCAL_API_BASE && !detailApiBases.includes(LOCAL_API_BASE)) {
+  if (isLocalhost && LOCAL_API_BASE && !detailApiBases.includes(LOCAL_API_BASE)) {
     detailApiBases.push(LOCAL_API_BASE);
+  }
+  if (!isLocalhost && REMOTE_API_BASE && !detailApiBases.includes(REMOTE_API_BASE)) {
+    detailApiBases.push(REMOTE_API_BASE);
   }
   const storedDetails = job.url && detailsByUrl ? detailsByUrl[job.url] : null;
   if (storedDetails) {
