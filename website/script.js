@@ -1077,6 +1077,10 @@ async function refreshJobs() {
 
 // Attach close event
 document.getElementById('modal-close').addEventListener('click', closeModal);
+const modalBackBtn = document.getElementById('modal-back');
+if (modalBackBtn) {
+  modalBackBtn.addEventListener('click', closeModal);
+}
 // Close modal when clicking outside content
 document.getElementById('job-modal').addEventListener('click', function(e) {
   if (e.target === this) {
