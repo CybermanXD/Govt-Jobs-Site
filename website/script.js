@@ -873,11 +873,16 @@ async function openModal(jobId) {
       });
     }
     if (job.url && job.url !== '#') {
-      linksPayload.push({
-        label: 'View Job Posting Source:',
-        text: 'Open',
-        url: job.url
-      });
+      const linkWrapper = document.getElementById('modal-link-wrapper');
+      if (linkWrapper && !linkWrapper.childElementCount) {
+        const anchor = document.createElement('a');
+        anchor.href = job.url;
+        anchor.target = '_blank';
+        anchor.rel = 'noopener noreferrer';
+        anchor.textContent = 'View Job Posting Source';
+        anchor.style.color = '#2d64a8';
+        linkWrapper.appendChild(anchor);
+      }
     }
     if (!linksPayload.length && data.officialNotificationStatus) {
       linksPayload.push({
