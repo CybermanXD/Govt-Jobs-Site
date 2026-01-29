@@ -521,14 +521,19 @@ body {
 /* Responsive adjustments */
 @media (max-width: 600px) {
   .search-bar {
-    flex-direction: column;
-    align-items: stretch;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .search-bar #keyword {
+    grid-column: 1 / -1;
   }
   .search-bar input,
   .search-bar select,
   .search-bar button {
+    width: 100%;
     max-width: 100%;
-    flex: 1 1 100%;
+    flex: none;
   }
   .results-header {
     flex-direction: column;
