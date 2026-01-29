@@ -120,6 +120,8 @@ function getActiveFilters() {
   };
 }
 
+let activeMonthFilter = null;
+
 function applyFiltersFromState({ preservePage = false } = {}) {
   const { keyword, qualification, board, state, sortBy } = getActiveFilters();
 
@@ -131,7 +133,18 @@ function applyFiltersFromState({ preservePage = false } = {}) {
     const qualMatch = qualification ? job.qualification === qualification : true;
     const boardMatch = board ? job.board === board : true;
     const stateMatch = state ? (job.state ? job.state === state : false) : true;
-    return keywordMatch && qualMatch && boardMatch && stateMatch;
+    let monthMatch = true;
+    if (activeMonthFilter) {
+      const jobDate = new Date(job.lastDate);
+      if (Number.isNaN(jobDate.getTime())) {
+        monthMatch = false;
+      } else {
+        monthMatch =
+          jobDate.getFullYear() === activeMonthFilter.year &&
+          jobDate.getMonth() === activeMonthFilter.month;
+      }
+    }
+    return keywordMatch && qualMatch && boardMatch && stateMatch && monthMatch;
   });
 
   filtered = sortJobs(filtered, sortBy || 'lastDateAsc');
@@ -688,6 +701,61 @@ if (qualificationSelectEl) qualificationSelectEl.addEventListener('change', filt
 
 // Initial load
 loadJobs();
+
+function updateMonthFilterLabels() {
+  const monthSelect = document.getElementById('month-filter');
+  if (!monthSelect) return;
+  const base = new Date();
+  const month2 = new Date(base.getFullYear(), base.getMonth() + 2, 1);
+  const options = monthSelect.querySelectorAll('option');
+  options.forEach((opt) => {
+    if (opt.value === 'this') opt.textContent = 'This month';
+    if (opt.value === 'next') opt.textContent = 'Next month';
+    if (opt.value === 'next2') opt.textContent = month2.toLocaleString('en-IN', { month: 'long' });
+  });
+}
+
+function setMonthFilterFromSelect() {
+  const monthSelect = document.getElementById('month-filter');
+  if (!monthSelect) return;
+  const base = new Date();
+  const value = monthSelect.value;
+  if (!value) {
+    activeMonthFilter = null;
+    return;
+  }
+  const offset = value === 'this' ? 0 : value === 'next' ? 1 : 2;
+  const targetDate = new Date(base.getFullYear(), base.getMonth() + offset, 1);
+  activeMonthFilter = { year: targetDate.getFullYear(), month: targetDate.getMonth() };
+}
+
+function clearAllFilters() {
+  const keywordInput = document.getElementById('keyword');
+  const qualificationSelect = document.getElementById('qualification');
+  const boardSelect = document.getElementById('board');
+  const stateSelect = document.getElementById('state');
+  const sortSelect = document.getElementById('sort-options');
+  const monthSelect = document.getElementById('month-filter');
+  if (keywordInput) keywordInput.value = '';
+  if (qualificationSelect) qualificationSelect.value = '';
+  if (boardSelect) boardSelect.value = '';
+  if (stateSelect) stateSelect.value = '';
+  if (sortSelect) sortSelect.value = 'lastDateAsc';
+  if (monthSelect) monthSelect.value = '';
+  activeMonthFilter = null;
+  applyFiltersFromState();
+}
+
+updateMonthFilterLabels();
+const monthSelect = document.getElementById('month-filter');
+if (monthSelect) {
+  monthSelect.addEventListener('change', () => {
+    setMonthFilterFromSelect();
+    applyFiltersFromState();
+  });
+}
+const clearFiltersBtn = document.getElementById('clear-filters');
+if (clearFiltersBtn) clearFiltersBtn.addEventListener('click', clearAllFilters);
 
 // Periodically refresh jobs from API every REFRESH_INTERVAL_MS when served over HTTP.
 if (window.location.protocol.startsWith('http')) {

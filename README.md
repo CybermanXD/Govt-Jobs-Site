@@ -1,6 +1,6 @@
 # Govt Jobs Site
 
-A fast, searchable portal for government job listings with clean filters and detail pages.
+A fast, searchable portal for government job listings with clean filters and a modal-based details view.
 
 ## Live Site
 
@@ -8,24 +8,43 @@ Access the application here:
 
 - https://govt-jobs-site.onrender.com/
 
+Hosted API base:
+
+- https://govt-jobs-site.onrender.com/api/
+
 ## Features
 
 - Browse up-to-date government job listings
 - Quick search and filtering for roles, departments, and locations
-- Dedicated detail pages for each listing
+- Modal-based “View Details” with eligibility, salary, dates, and links
 - Lightweight frontend for fast load times
 
 ## Tech Stack
 
 - Frontend: HTML, CSS, JavaScript
 - Backend: Python (Flask)
+- Storage: Supabase (jobs.json + jobsDetails.json)
 
 ## Local Development
 
-1. Start the server.
-2. Open the app in your browser.
+1. Install dependencies.
+2. Start the server.
+3. Open the app in your browser.
+
+```bash
+pip install -r requirements.txt
+python server.py
+```
 
 > Note: If you already run the server in your environment, reuse that command and port.
+
+## Data Sources
+
+- Jobs list JSON: https://tokzbiepijjdvbdtacjz.supabase.co/storage/v1/object/public/jobs-info/jobs.json
+- Job details JSON: https://tokzbiepijjdvbdtacjz.supabase.co/storage/v1/object/public/jobs-info/jobsDetails.json
+
+The frontend loads `jobs.json` for listings and `jobsDetails.json` for modal details. If a
+detail entry is missing, it falls back to the `/api/job_details` endpoint.
 
 ## Job Details Snapshot (Supabase)
 
@@ -47,11 +66,18 @@ python scripts/build_job_details.py
 - `SUPABASE_BUCKET` (optional): bucket name, defaults to `jobs-info`
 - `SUPABASE_OBJECT_PATH` (optional): object path, defaults to `jobsDetails.json`
 
+## Automation
+
+GitHub Actions in [`.github/workflows/scrape.yml`](.github/workflows/scrape.yml) runs the job
+scraper and details generator, then uploads `jobs.json` and `jobsDetails.json` to Supabase.
+
 ## Project Structure
 
 - `server.py` — backend API and server
 - `website/` — frontend assets (HTML, CSS, JS)
-- `jobs_cache.json` — cached job data
+- `scripts/scrape_jobs.py` — jobs list generator
+- `scripts/build_job_details.py` — job details snapshot generator
+- `jobs_cache.json` — cached job data (server-side)
 
 ## Contributing
 

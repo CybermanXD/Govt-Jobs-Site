@@ -122,8 +122,36 @@ body {
   cursor: pointer;
 }
 
-.search-bar button:hover {
-  background-color: #244e85;
+.search-bar .clear-filters {
+  background: #fff;
+  color: #2d64a8;
+  border: 1px solid #2d64a8;
+}
+
+.search-bar .clear-filters:hover {
+  background-color: #eef5fe;
+}
+
+
+.clear-filters-row {
+  margin-top: 10px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.clear-filters {
+  border: 1px solid #2d64a8;
+  background: #fff;
+  color: #2d64a8;
+  padding: 10px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.clear-filters:hover {
+  background: #fff;
 }
 
 /* Results Section */
