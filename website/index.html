@@ -85,8 +85,11 @@
   <!-- Modal for Job Details -->
   <div id="job-modal" class="modal" style="display:none;">
     <div class="modal-content">
-      <span id="modal-close" class="modal-close">&times;</span>
-      <h3 id="modal-title"></h3>
+      <div class="modal-header">
+        <h3 id="modal-title"></h3>
+        <span id="modal-close" class="modal-close">&times;</span>
+      </div>
+      <div class="modal-body">
       <!-- Summary fields -->
       <p><strong>Recruiting Board:</strong> <span id="modal-board"></span></p>
       <p><strong>Company Name:</strong> <span id="modal-company"></span></p>
@@ -108,7 +111,10 @@
       <div id="modal-how-to-apply" class="modal-details" style="margin-top:15px;"></div>
       
       <p style="margin-top:15px;margin-bottom: 20px;"><strong>Source:</strong> <span id="modal-source"></span></p>
-      <button id="modal-back" class="modal-back" type="button">Back</button>
+      </div>
+      <div class="modal-footer">
+        <button id="modal-back" class="modal-back" type="button">Back</button>
+      </div>
        
     </div>
   </div>

@@ -975,13 +975,7 @@ async function openModal(jobId) {
             });
           });
         }
-        if (job.url && job.url !== '#') {
-          linksPayload.push({
-            label: 'View Job Posting Source:',
-            text: 'Open',
-            url: job.url
-          });
-        }
+        // View Job Posting Source is handled by modal-link-wrapper; keep it out of Important Links.
         if (!linksPayload.length && data.officialNotificationStatus) {
           linksPayload.push({
             label: '',
