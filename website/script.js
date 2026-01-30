@@ -12,10 +12,10 @@ const isFileProtocol = window.location.protocol === 'file:';
 const isLocalhost =
   window.location.hostname === 'localhost' ||
   window.location.hostname === '127.0.0.1';
-const API_BASE = '';
+const API_BASE = '';  
 const API_ENABLED = Boolean(REMOTE_API_BASE);
 
-// List of all Indian states and union territories.  This is used both to
+// THE List of all Indian states and union territories. This is used both to
 // populate the state filter and to infer a state for jobs that are not
 // explicitly tagged with one.  If you update this list, be sure to keep
 // the names in their official form (e.g. "Andaman and Nicobar Islands")
