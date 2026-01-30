@@ -1,5 +1,7 @@
 """Scrape jobs and emit a JSON snapshot for storage uploads."""
 
+# Script entrypoint for scheduled job scraping.
+
 from __future__ import annotations
 
 import json

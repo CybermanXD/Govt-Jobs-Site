@@ -1,5 +1,7 @@
 """Build a job-details JSON snapshot for Supabase storage."""
 
+# Script entrypoint for building job details snapshot.
+
 from __future__ import annotations
 
 import json

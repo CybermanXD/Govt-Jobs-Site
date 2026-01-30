@@ -1,3 +1,4 @@
+# Scheduled scraping workflow for Govt Jobs Site.
 name: scrape-jobs
 
 on:

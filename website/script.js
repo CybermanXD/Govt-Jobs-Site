@@ -1,4 +1,5 @@
 // Jobs array populated asynchronously.
+// Frontend script for job listings page.
 let jobs = [];
 
 // Jobs data source (Supabase Storage JSON).

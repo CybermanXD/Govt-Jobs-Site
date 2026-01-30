@@ -38,6 +38,8 @@ NOTE: The scraping logic is simplified and intended as a proof of concept.
       to the parsing routines.
 """
 
+# Main Flask server entrypoint for Govt Jobs Site.
+
 from __future__ import annotations
 
 from datetime import datetime

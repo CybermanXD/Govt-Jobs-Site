@@ -1,3 +1,4 @@
+# Project dependencies for Govt Jobs Site.
 flask
 requests
 beautifulsoup4

@@ -1,4 +1,5 @@
 // This script drives the job details page.  It reads query parameters from
+// Frontend script for job details page.
 // the URL to obtain information about the selected job and fetches
 // additional details from the backend API when available.  If the page is
 // opened without HTTP (e.g. via file://), the API is not called and only
