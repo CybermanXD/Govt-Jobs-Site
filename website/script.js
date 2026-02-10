@@ -145,11 +145,30 @@ let activeMonthFilter = null;
 function applyFiltersFromState({ preservePage = false } = {}) {
   const { keyword, qualification, board, state, sortBy } = getActiveFilters();
 
+  const collectSearchText = (value, bucket) => {
+    if (value === null || value === undefined) return;
+    if (Array.isArray(value)) {
+      value.forEach(item => collectSearchText(item, bucket));
+      return;
+    }
+    if (typeof value === 'object') {
+      Object.values(value).forEach(item => collectSearchText(item, bucket));
+      return;
+    }
+    const text = String(value).toLowerCase();
+    if (text) bucket.push(text);
+  };
+
+  const getJobSearchBlob = (job) => {
+    const parts = [];
+    collectSearchText(job, parts);
+    return parts.join(' ');
+  };
+
   let filtered = jobs.filter(job => {
-    const keywordMatch =
-      job.title.toLowerCase().includes(keyword) ||
-      job.board.toLowerCase().includes(keyword) ||
-      (job.state && job.state.toLowerCase().includes(keyword));
+    const keywordMatch = keyword
+      ? getJobSearchBlob(job).includes(keyword)
+      : true;
     const qualMatch = qualification ? job.qualification === qualification : true;
     const boardMatch = board ? job.board === board : true;
     const stateMatch = state ? (job.state ? job.state === state : false) : true;
