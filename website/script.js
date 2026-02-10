@@ -99,6 +99,25 @@ function processJobList(list) {
   list.forEach((job) => processJob(job));
 }
 
+function getTodayDateStringLocal() {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function filterOutExpiredJobs(list) {
+  const todayStr = getTodayDateStringLocal();
+  return list.filter((job) => {
+    if (!job || !job.lastDate) return true;
+    const parsed = new Date(job.lastDate);
+    if (Number.isNaN(parsed.getTime())) return true;
+    const jobDateStr = parsed.toISOString().slice(0, 10);
+    return jobDateStr >= todayStr;
+  });
+}
+
 function dedupeJobsByKey(list) {
   const seen = new Set();
   const deduped = [];
@@ -295,7 +314,8 @@ async function loadJobs() {
         const parsed = JSON.parse(cachedJobsStr);
         if (Array.isArray(parsed) && parsed.length) {
           // Use cached jobs
-          jobs = parsed.map((job, idx) => ({ id: idx + 1, ...job }));
+          const filteredCached = filterOutExpiredJobs(parsed);
+          jobs = filteredCached.map((job, idx) => ({ id: idx + 1, ...job }));
           processJobList(jobs);
           populateFilters();
           applyFiltersFromState();
@@ -324,7 +344,8 @@ async function loadJobs() {
         const fetched = await fetchJobsSnapshot();
         if (fetched.length) {
           const merged = dedupeJobsByKey([...jobs, ...fetched]);
-          jobs = merged.map((job, idx) => ({ id: idx + 1, ...job }));
+          const filteredMerged = filterOutExpiredJobs(merged);
+          jobs = filteredMerged.map((job, idx) => ({ id: idx + 1, ...job }));
           processJobList(jobs);
           populateFilters();
           applyFiltersFromState();
@@ -351,7 +372,8 @@ async function loadJobs() {
     try {
       const snapJobs = await fetchJobsSnapshot();
       if (snapJobs.length) {
-        jobs = snapJobs.map((job, idx) => ({ id: idx + 1, ...job }));
+        const filteredSnap = filterOutExpiredJobs(snapJobs);
+        jobs = filteredSnap.map((job, idx) => ({ id: idx + 1, ...job }));
         processJobList(jobs);
         populateFilters();
         applyFiltersFromState();
@@ -594,8 +616,9 @@ async function loadMoreJobs() {
     if (response.ok) {
       const data = await response.json();
       const newJobs = Array.isArray(data.jobs) ? data.jobs : [];
+      const filteredNewJobs = filterOutExpiredJobs(newJobs);
       const startId = jobs.length + 1;
-      newJobs.forEach((jobData, idx) => {
+      filteredNewJobs.forEach((jobData, idx) => {
         const job = { id: startId + idx, ...jobData };
         processJob(job);
         jobs.push(job);
@@ -640,13 +663,14 @@ async function autoLoadMoreJobs() {
       const newJobs = Array.isArray(data.jobs) ? data.jobs : [];
       apiNextOffset = data.next_offset;
       apiLoading = !!data.loading;
-      if (!newJobs.length) {
+      const filteredNewJobs = filterOutExpiredJobs(newJobs);
+      if (!filteredNewJobs.length) {
         if (apiNextOffset === null && !apiLoading) break;
         // No new jobs yet; exit the loop and try again on next interval
         break;
       }
       const startId = jobs.length + 1;
-      newJobs.forEach((jobData, idx) => {
+      filteredNewJobs.forEach((jobData, idx) => {
         const job = { id: startId + idx, ...jobData };
         processJob(job);
         jobs.push(job);
@@ -1124,7 +1148,8 @@ async function refreshJobs() {
       return;
     }
     const merged = dedupeJobsByKey([...jobs, ...snapJobs]);
-    jobs = merged.map((job, idx) => ({ id: idx + 1, ...job }));
+    const filteredMerged = filterOutExpiredJobs(merged);
+    jobs = filteredMerged.map((job, idx) => ({ id: idx + 1, ...job }));
     processJobList(jobs);
     populateFilters();
     applyFiltersFromState({ preservePage: true });
