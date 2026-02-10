@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://govt-jobs-site.onrender.com/sitemap.xml
