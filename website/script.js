@@ -141,6 +141,75 @@ function getActiveFilters() {
 }
 
 let activeMonthFilter = null;
+let urlFiltersApplied = false;
+let preservePageFromUrl = false;
+
+function getMonthFilterValue() {
+  const monthSelect = document.getElementById('month-filter');
+  return monthSelect ? monthSelect.value : '';
+}
+
+function readFiltersFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const pageParam = parseInt(params.get('page'), 10);
+  return {
+    keyword: params.get('q') || '',
+    qualification: params.get('qualification') || '',
+    board: params.get('board') || '',
+    state: params.get('state') || '',
+    sortBy: params.get('sort') || '',
+    month: params.get('month') || '',
+    page: Number.isNaN(pageParam) ? null : pageParam
+  };
+}
+
+function applyFiltersFromUrlOnce() {
+  if (urlFiltersApplied) return;
+  const params = new URLSearchParams(window.location.search);
+  if (params.toString().length === 0) {
+    urlFiltersApplied = true;
+    return;
+  }
+  const { keyword, qualification, board, state, sortBy, month, page } = readFiltersFromUrl();
+  const keywordInput = document.getElementById('keyword');
+  if (keywordInput && keyword) keywordInput.value = keyword;
+  const qualificationSelect = document.getElementById('qualification');
+  if (qualificationSelect && qualification) qualificationSelect.value = qualification;
+  const boardSelect = document.getElementById('board');
+  if (boardSelect && board) boardSelect.value = board;
+  const stateSelect = document.getElementById('state');
+  if (stateSelect && state) stateSelect.value = state;
+  const sortSelect = document.getElementById('sort-options');
+  if (sortSelect && sortBy) sortSelect.value = sortBy;
+  const monthSelect = document.getElementById('month-filter');
+  if (monthSelect && month) {
+    monthSelect.value = month;
+    setMonthFilterFromSelect();
+  }
+  if (page && page > 1) {
+    currentPage = page;
+    preservePageFromUrl = true;
+  }
+  urlFiltersApplied = true;
+}
+
+function updateUrlState() {
+  const { keyword, qualification, board, state, sortBy } = getActiveFilters();
+  const params = new URLSearchParams();
+  if (keyword) params.set('q', keyword);
+  if (qualification) params.set('qualification', qualification);
+  if (board) params.set('board', board);
+  if (state) params.set('state', state);
+  if (sortBy) params.set('sort', sortBy);
+  const monthValue = getMonthFilterValue();
+  if (monthValue) params.set('month', monthValue);
+  if (currentPage > 1) params.set('page', String(currentPage));
+  const query = params.toString();
+  const newUrl = query ? `${window.location.pathname}?${query}` : window.location.pathname;
+  if (newUrl !== `${window.location.pathname}${window.location.search}`) {
+    history.replaceState(null, '', newUrl);
+  }
+}
 
 function applyFiltersFromState({ preservePage = false } = {}) {
   const { keyword, qualification, board, state, sortBy } = getActiveFilters();
@@ -162,6 +231,15 @@ function applyFiltersFromState({ preservePage = false } = {}) {
   const getJobSearchBlob = (job) => {
     const parts = [];
     collectSearchText(job, parts);
+    if (job && job.url && detailsByUrl && detailsByUrl[job.url]) {
+      const details = detailsByUrl[job.url];
+      if (details && details.eligibility) {
+        collectSearchText(details.eligibility, parts);
+      }
+      if (details && details.experience) {
+        collectSearchText(details.experience, parts);
+      }
+    }
     return parts.join(' ');
   };
 
@@ -195,6 +273,7 @@ function applyFiltersFromState({ preservePage = false } = {}) {
     if (currentPage > totalPages) currentPage = totalPages;
     if (currentPage < 1) currentPage = 1;
   }
+  preservePageFromUrl = false;
   renderPagination(currentFilteredJobs);
   renderResultsPage();
 }
@@ -360,21 +439,23 @@ async function loadJobs() {
       showLoadingOverlay(true, true);
       try {
         setLoadingMessage(true, true);
-        const fetched = await fetchJobsSnapshot();
-        if (fetched.length) {
-          const merged = dedupeJobsByKey([...jobs, ...fetched]);
-          const filteredMerged = filterOutExpiredJobs(merged);
-          jobs = filteredMerged.map((job, idx) => ({ id: idx + 1, ...job }));
-          processJobList(jobs);
-          populateFilters();
-          applyFiltersFromState();
-          toggleLoadMore();
-          cacheJobs();
-        }
-        const details = await fetchJobDetailsSnapshot();
-        if (details && typeof details === 'object') {
-          detailsByUrl = details;
-        }
+          const fetched = await fetchJobsSnapshot();
+          if (fetched.length) {
+            const merged = dedupeJobsByKey([...jobs, ...fetched]);
+            const filteredMerged = filterOutExpiredJobs(merged);
+            jobs = filteredMerged.map((job, idx) => ({ id: idx + 1, ...job }));
+            processJobList(jobs);
+            populateFilters();
+            applyFiltersFromUrlOnce();
+            applyFiltersFromState({ preservePage: preservePageFromUrl });
+            preservePageFromUrl = false;
+            toggleLoadMore();
+            cacheJobs();
+          }
+          const details = await fetchJobDetailsSnapshot();
+          if (details && typeof details === 'object') {
+            detailsByUrl = details;
+          }
       } catch (err) {
         console.error('Failed to fetch jobs in background', err);
       }
@@ -394,17 +475,22 @@ async function loadJobs() {
         const filteredSnap = filterOutExpiredJobs(snapJobs);
         jobs = filteredSnap.map((job, idx) => ({ id: idx + 1, ...job }));
         processJobList(jobs);
-        populateFilters();
-        applyFiltersFromState();
+           populateFilters();
+           applyFiltersFromUrlOnce();
+           applyFiltersFromState({ preservePage: preservePageFromUrl });
+           preservePageFromUrl = false;
         toggleLoadMore();
-        const details = await fetchJobDetailsSnapshot();
-        if (details && typeof details === 'object') {
-          detailsByUrl = details;
-        }
-        showLoadingOverlay(false);
-        setLoadingMessage(false);
-        cacheJobs();
-        return;
+         const details = await fetchJobDetailsSnapshot();
+         if (details && typeof details === 'object') {
+           detailsByUrl = details;
+         }
+         showLoadingOverlay(false);
+         setLoadingMessage(false);
+         cacheJobs();
+         applyFiltersFromUrlOnce();
+         applyFiltersFromState({ preservePage: preservePageFromUrl });
+         preservePageFromUrl = false;
+         return;
       }
     } catch (error) {
       console.error('Failed to fetch snapshot', error);
@@ -415,7 +501,9 @@ async function loadJobs() {
   // No fallback dataset; snapshot is the only source.
   jobs = [];
   populateFilters();
-  applyFiltersFromState();
+  applyFiltersFromUrlOnce();
+  applyFiltersFromState({ preservePage: preservePageFromUrl });
+  preservePageFromUrl = false;
   toggleLoadMore();
   setLoadingMessage(false);
 }
@@ -592,6 +680,7 @@ function renderResultsPage() {
       select.value = currentPage.toString();
     }
   }
+  updateUrlState();
   // Toggle the visibility of the load more button based on current page and API offset
   toggleLoadMore();
 }
@@ -1171,6 +1260,7 @@ async function refreshJobs() {
     jobs = filteredMerged.map((job, idx) => ({ id: idx + 1, ...job }));
     processJobList(jobs);
     populateFilters();
+    applyFiltersFromUrlOnce();
     applyFiltersFromState({ preservePage: true });
     toggleLoadMore();
     cacheJobs();
